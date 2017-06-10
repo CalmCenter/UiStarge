@@ -32,7 +32,8 @@ public class MainActivity extends AppCompatActivity {
 //            @Override
 //            public void run() {
 //                row=10000;
-//                Log.i("tuch","加载10000");
+//                column=10000;
+//                Log.i("Tag","加载100000000");
 //                tableView.setAdapter(new MyAdapter(MainActivity.this));
 //            }
 //        },8000);

@@ -21,35 +21,35 @@ import java.util.List;
 public class TableView extends ViewGroup {
     private BaseTableAdapter adapter;
 
-    private int downX;
+    private int downX;//滑动时手指落下的X Y
     private int downY;
     private int scrollX;//滑动的距离
     private int scrollY;
-    private int firstRow;//第一行
-    private int firstColumn; //第一列position
+    private int firstRow;//当前第一行postiton
+    private int firstColumn; //当前第一列position
     private int[] widths;//存放每个View的宽高
     private int[] heights;
 
     @SuppressWarnings("unused")
-    private View headView;
-    private List<View> rowViewList;//保存一行数据 因为在滑动是可能一行数据直接就滑上去了
+    private View headView;//头View 为使用
+    private List<View> rowViewList;//保存第一行数据
     private List<View> columnViewList;
     private List<List<View>> bodyViewTable;//表格数据
     private int rowCount;//行数
     private int columnCount;//列数
     private int width;
     private int height;
-    private final ImageView[] shadows;
-    private final int shadowSize;
+    private final ImageView[] shadows;//分割的黑线
+    private final int shadowSize;//黑线宽度
 
-    private int minimumVelocity;
+    private int minimumVelocity;//惯性滑动时最小和最大速率
     private int maximumVelocity;
     private final Flinger flinger;//惯性滑动
-    private VelocityTracker velocityTracker;
+    private VelocityTracker velocityTracker;//惯性滑动
 
     private boolean needRelayout;    //需要重绘标志位
     private int touchSlop;    //滑动最小距离
-    private Recycler recycler;
+    private Recycler recycler;//复用相关类
 
     public TableView(Context context) {
         this(context, null);
@@ -88,6 +88,7 @@ public class TableView extends ViewGroup {
         this.maximumVelocity = configuration.getScaledMaximumFlingVelocity();
         this.setWillNotDraw(false);
     }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         final int widthMode = MeasureSpec.getMode(widthMeasureSpec);
@@ -99,11 +100,11 @@ public class TableView extends ViewGroup {
         final int h;
 
         if (adapter != null) {
-            this.rowCount = adapter.getRowCount();
+            this.rowCount = adapter.getRowCount();//获取数据个数
             this.columnCount = adapter.getColumnCount();
             //
-            widths = new int[columnCount + 1];
-            for (int i = -1; i < columnCount; i++) {
+            widths = new int[columnCount + 1];//初始化保存的数组 这里+1 是包括了有一个单向滑动的头部。
+            for (int i = -1; i < columnCount; i++) {//这里从-1开始是为了可以添加columnCount + 1条数据
                 widths[i + 1] += adapter.getWidth(i);
             }
             heights = new int[rowCount + 1];
@@ -111,14 +112,15 @@ public class TableView extends ViewGroup {
                 heights[i + 1] += adapter.getHeight(i);
             }
 
-            if (widthMode == MeasureSpec.AT_MOST) {
-                w = Math.min(widthSize, sumArray(widths));
+            if (widthMode == MeasureSpec.AT_MOST) {//AT_MOST wrap_content
+                //sumArray方法是计算出数组的总和
+                w = Math.min(widthSize, sumArray(widths));//判读屏幕宽度和数据宽度，取最小的
             } else if (widthMode == MeasureSpec.UNSPECIFIED) {
                 w = sumArray(widths);
-            } else {
+            } else {//具体指或match_parent
                 w = widthSize;
                 int sumArray = sumArray(widths);
-                if (sumArray < widthSize) {
+                if (sumArray < widthSize) {//如果 现有view的宽度小于 屏幕宽度 将会把屏幕宽度平分
                     final float factor = widthSize / (float) sumArray;
                     for (int i = 1; i < widths.length; i++) {
                         widths[i] = Math.round(widths[i] * factor);
@@ -143,7 +145,7 @@ public class TableView extends ViewGroup {
                 h = heightSize;
             }
         }
-
+        //必须调用
         setMeasuredDimension(w, h);
     }
 
@@ -152,14 +154,13 @@ public class TableView extends ViewGroup {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         if (needRelayout || changed) {
-            Log.e("Tag","TableView onLayout");
             needRelayout = false;
-            resetTable();
+            resetTable();//情况所有的集合和View
 
             if (adapter != null) {
-                width = r - l;
+                width = r - l;//屏幕当前的宽度和高度
                 height = b - t;
-
+                //画那四条黑线，在实现静态页面是还没什么用
                 int left, top, right, bottom;
 
                 right = Math.min(width, sumArray(widths));
@@ -168,26 +169,29 @@ public class TableView extends ViewGroup {
                 addShadow(shadows[1], 0, heights[0], right, heights[0] + shadowSize);
                 addShadow(shadows[2], right - shadowSize, 0, right, bottom);
                 addShadow(shadows[3], 0, bottom - shadowSize, right, bottom);
-
+                //画左上角那个固定的ViewItem(红色部分)
                 headView = makeAndSetup(-1, -1, 0, 0, widths[0], heights[0]);
-
-                left = widths[0] - scrollX;
+                //画除左上角以外的第一行数据(橘黄色部分)
+                left = widths[0];
+                //这里用到了源码里的机制，只加载屏幕以内的View
+                //当left(当前View的左边<屏幕的宽度才去加载)
                 for (int i = firstColumn; i < columnCount && left < width; i++) {
+                    //不停的去找下个View的左右边的值
                     right = left + widths[i + 1];
                     final View view = makeAndSetup(-1, i, left, 0, right, heights[0]);
-                    rowViewList.add(view);
+                    rowViewList.add(view);//保存第一行数据
                     left = right;
                 }
-
-                top = heights[0] - scrollY;
+                //画除左上角以外的第一列数据(棕色部分)
+                top = heights[0];
                 for (int i = firstRow; i < rowCount && top < height; i++) {
                     bottom = top + heights[i + 1];
                     final View view = makeAndSetup(i, -1, 0, top, widths[0], bottom);
                     columnViewList.add(view);
                     top = bottom;
                 }
-
-                top = heights[0] - scrollY;
+                //画Body部分(蓝色部分)
+                top = heights[0];
                 for (int i = firstRow; i < rowCount && top < height; i++) {
                     bottom = top + heights[i + 1];
                     left = widths[0] - scrollX;
@@ -195,14 +199,14 @@ public class TableView extends ViewGroup {
                     for (int j = firstColumn; j < columnCount && left < width; j++) {
                         right = left + widths[j + 1];
                         final View view = makeAndSetup(i, j, left, top, right, bottom);
-                        list.add(view);
+                        list.add(view);//当前行 一个一个添加  最后相当于一行数据
                         left = right;
                     }
-                    bodyViewTable.add(list);
+                    bodyViewTable.add(list);//添加一行数据 最后相当于 表格内所有数据
                     top = bottom;
                 }
 
-                shadowsVisibility();
+                shadowsVisibility();//分割的黑线
             }
         }
     }
@@ -218,8 +222,8 @@ public class TableView extends ViewGroup {
                 break;
             case MotionEvent.ACTION_MOVE:
                 //拦截move事件  防止子view中有Button一类的控件
-                int x2 =  Math.abs(downX - (int)ev.getRawX());
-                int y2 =  Math.abs(downY - (int)ev.getRawY());
+                int x2 = Math.abs(downX - (int) ev.getRawX());
+                int y2 = Math.abs(downY - (int) ev.getRawY());
                 if (x2 > touchSlop || y2 > touchSlop) {
                     intercept = true;
                 }
@@ -306,19 +310,21 @@ public class TableView extends ViewGroup {
             scrollBy(x - sumArray(widths, 1, firstColumn) - scrollX, y - sumArray(heights, 1, firstRow) - scrollY);
         }
     }
+
     @Override
     public void scrollBy(int x, int y) {
         scrollX += x;
         scrollY += y;
-
         if (needRelayout) {
             return;
         }
-
         scrollBounds();
+
         if (scrollX == 0) {
             // no op
-        } else if (scrollX > 0) {
+        } else if (scrollX > 0) {//向左滑动
+            //当scrollX大于body(蓝色区域)内第一个可见View的宽度的时候
+            //这里用while是有可能快速移动，直接处理多个View的情况
             while (widths[firstColumn + 1] < scrollX) {
                 if (!rowViewList.isEmpty()) {
                     removeLeft();
@@ -326,27 +332,26 @@ public class TableView extends ViewGroup {
                 scrollX -= widths[firstColumn + 1];
                 firstColumn++;
             }
-            while (getFilledWidth() < width) {
+            //如果不快速滑动 这里的rowViewList可以理解为body中可见的View
+            //这里的getFilledWidth()其实就是计算出第一列(单向滑动的那列)的宽度+body(蓝色区域)内rowViewList的中保存的所有View的宽度(有可能首尾的View超出去一部分或超出多个View，那部分也算)-scrollX
+            //所以这里计算的就是body(蓝色区域)左边到rowViewList的中保存的最后一个View的宽度(最后一个View超出屏幕部分也算)。因为scrollX就是向左滑了的部分，也就是左边超出的部分
+            //这里用while是有可能快速移动，直接处理多个View的情况
+            while (getFilledWidth() < width) {//这里的判断就是当把最后一个View超出屏幕的部分全部移回来了，就是添加下个view的时候
                 addRight();
             }
-        } else {
+        } else {//向右滑动第一个View全部出现时调用一次
+            //往右滑的时候scrollX是负的。所以getFilledWidth()里的-scrollX 成了 +|scrollX|
+            //和上边的一样getFilledWidth()计算的是第一列(单向滑动的那列)的宽度+body(蓝色区域)的第一个view到rowViewList的中保存的最后一个View的宽度(最后一个View超出屏幕部分也算)
+            //因为只有在右滑时第一个View全部出现的时候调用一次，所以这里body(蓝色区域)的第一个view就相当于从body的左边开始
+            //这里判断就相当于：可见的第一个View到rowViewList的中保存的最后一个
             while (!rowViewList.isEmpty() && getFilledWidth() - widths[firstColumn + rowViewList.size()] >= width) {
                 removeRight();
             }
-            if (rowViewList.isEmpty()) {
-                while (scrollX < 0) {
-                    firstColumn--;
-                    scrollX += widths[firstColumn + 1];
-                }
-                while (getFilledWidth() < width) {
-                    addRight();
-                }
-            } else {
-                while (0 > scrollX) {
-                    addLeft();
-                    firstColumn--;
-                    scrollX += widths[firstColumn + 1];
-                }
+            //当scrollX小于0的时候证明已经 将之前左滑的部分又向右滑回来了
+            while (0 > scrollX) {
+                addLeft();
+                firstColumn--;
+                scrollX += widths[firstColumn + 1];
             }
         }
 
@@ -367,26 +372,16 @@ public class TableView extends ViewGroup {
             while (!columnViewList.isEmpty() && getFilledHeight() - heights[firstRow + columnViewList.size()] >= height) {
                 removeBottom();
             }
-            if (columnViewList.isEmpty()) {
-                while (scrollY < 0) {
-                    firstRow--;
-                    scrollY += heights[firstRow + 1];
-                }
-                while (getFilledHeight() < height) {
-                    addBottom();
-                }
-            } else {
-                while (0 > scrollY) {
-                    addTop();
-                    firstRow--;
-                    scrollY += heights[firstRow + 1];
-                }
+            while (0 > scrollY) {
+                addTop();
+                firstRow--;
+                scrollY += heights[firstRow + 1];
             }
         }
 
-        repositionViews();
+        repositionViews();//没有这个体现不出滑动的效果
 
-        shadowsVisibility();
+        shadowsVisibility();//分割线
     }
 
     private void repositionViews() {
@@ -430,10 +425,9 @@ public class TableView extends ViewGroup {
 
 
     public int getFilledWidth() {
-
         return widths[0] + sumArray(widths, firstColumn + 1, rowViewList.size()) - scrollX;
     }
-	/*------------------------------------TODO ↑↑↑滑动相关↑↑↑------------------------------------------*/
+    /*------------------------------------TODO ↑↑↑滑动相关↑↑↑------------------------------------------*/
 
     //获取一个View
     private View makeAndSetup(int row, int column, int left, int top, int right, int bottom) {
@@ -448,7 +442,7 @@ public class TableView extends ViewGroup {
         //得到当前控件的类型
         final int itemType = adapter.getItemViewType(row, column);
         //从回收池拿到一个View  可能为null
-        final View reclyView ;
+        final View reclyView;
         if (itemType == -1) {
             reclyView = null;
         } else {
@@ -473,14 +467,13 @@ public class TableView extends ViewGroup {
 
     private void addTableView(View view, int row, int column) {
         if (row == -1 && column == -1) {
-            addView(view, getChildCount() - 4);
+            addView(view);
         } else if (column == -1 || row == -1) {
             addView(view, getChildCount() - 5);
         } else {
-            addView(view,0);
+            addView(view, 0);
         }
     }
-
 
 
     private void resetTable() {
@@ -538,6 +531,7 @@ public class TableView extends ViewGroup {
         imageView.layout(l, t, r, b);
         addView(imageView);
     }
+
     private void shadowsVisibility() {
         final int actualScrollX = getActualScrollX();
         final int actualScrollY = getActualScrollY();
@@ -552,6 +546,7 @@ public class TableView extends ViewGroup {
             setAlpha(shadows[i], Math.min(remainPixels[i] / (float) shadowSize, 1));
         }
     }
+
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     @SuppressWarnings("deprecation")
     private void setAlpha(ImageView imageView, float alpha) {
@@ -685,6 +680,7 @@ public class TableView extends ViewGroup {
             i++;
         }
     }
+
     private void removeLeft() {
         removeLeftOrRight(0);
     }
