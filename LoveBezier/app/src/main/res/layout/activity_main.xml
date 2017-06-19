@@ -1,0 +1,46 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity" >
+
+
+    <LinearLayout
+        android:id="@+id/first"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:background="@mipmap/icon2"
+        android:orientation="vertical"
+        >
+        <Button
+            android:id="@+id/bt1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="start"
+            android:text="赞一个" />
+        <Button
+            android:id="@+id/bt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="显示"
+            android:background="#f00"
+            android:onClick="startFirstAnim"/>
+    </LinearLayout>
+    <ImageView
+        android:orientation="vertical"
+        android:id="@+id/second"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:src="@mipmap/icon1"
+        android:scaleType="fitXY"
+        android:layout_gravity="bottom"
+        android:onClick="startSecondAnim"
+        android:visibility="invisible"
+        android:clickable="true"
+        />
+    <com.practice.lovebezier.LoveLayout
+        android:id="@+id/loveLayout"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        />
+</FrameLayout>
