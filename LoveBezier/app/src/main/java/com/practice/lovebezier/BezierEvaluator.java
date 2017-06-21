@@ -2,6 +2,7 @@ package com.practice.lovebezier;
 
 import android.animation.TypeEvaluator;
 import android.graphics.PointF;
+import android.util.Log;
 
 public class BezierEvaluator implements TypeEvaluator<PointF> {
 
