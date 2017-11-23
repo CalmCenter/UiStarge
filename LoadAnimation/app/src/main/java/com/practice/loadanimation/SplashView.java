@@ -231,7 +231,7 @@ public class SplashView extends View{
      */
     private class ExpandState extends SplashState{
         public ExpandState() {
-            //花1200ms，计算某个时刻当前的空心圆的半径是多少？ r~0中的某个值
+            //花1200ms，计算某个时刻当前的空心圆的半径是多少？ r~屏幕对角线中的某个值
             mAnimator = ValueAnimator.ofFloat(mCircleRadius, mDiagonalDist);
             mAnimator.setDuration(mRotationDuration);
             mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
