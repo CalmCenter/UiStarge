@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#444444"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/btn"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:background="#ffffff"
+        android:gravity="center"
+        android:padding="10dp"
+        android:text="列表"
+        android:textColor="#000000" />
+
+    <CheckBox
+        android:id="@+id/cb"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="20dp"
+        android:text="ShowShadow"
+        android:textColor="#ffffff" />
+
+    <CheckBox
+        android:id="@+id/cb_ExactMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/cb"
+        android:layout_margin="20dp"
+        android:checked="true"
+        android:text="ExactMode"
+        android:textColor="#ffffff" />
+
+    <EditText
+        android:id="@+id/et"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btn"
+        android:layout_toLeftOf="@+id/cb_ExactMode"
+        android:inputType="number"
+        android:textColor="#ffffff" />
+</RelativeLayout>
