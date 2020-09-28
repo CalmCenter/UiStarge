@@ -9,7 +9,6 @@ feature1  2
 feature3
 feature2
 第一次提交
-=======
 feature2
 feature2 2
->>>>>>> 2b21ec9... feature2 第二次提交
+第二次提交
